@@ -1,4 +1,5 @@
 import sys
+sys.path.append("../libraries/pygame/Lib/site-packages")
 import pygame
 pygame.init()
 

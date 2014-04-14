@@ -43,7 +43,7 @@ class ChessBoard:
         #self.mimicFEN("3k4/7r/1p6/8/8/8/8/K2Q4 b - - 0 1")
 
     def mimicFEN(self, input):
-        self.pieces.clear()
+        self.pieces[:] = []
         sections = input.split()
         rows = sections[0].split('/')
         for row in range(0, 8):
