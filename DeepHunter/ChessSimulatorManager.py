@@ -9,11 +9,11 @@ class ChessSimulatorManager:
 
     def __init__(self):
         self.board = ChessBoard()
+        self.board.activeColor = COLOR.WHITE;
         self.logic = ChessLogic()
         self.whiteSimulatorStream = None
         self.blackSimulatorStream = None
         self.chessGraphics = ChessGraphicsManager()
-        self.currentColor = COLOR.WHITE
         print("SimulatorManager loaded, no simulator streams locked")
 
     def tick(self):
@@ -29,12 +29,14 @@ class ChessSimulatorManager:
                 else:
                     pass
 
-            if(self.currentColor == self.color):
-                move = self.logic.findBestMove(self)
+            if(self.board.activeColor == self.color):
+                move = self.logic.findBestMove(self.board)
                 move.log()
                 self.board.processMove(move)
-            elif(self.currentColor != self.color):
-                pass
+            elif(self.board.activeColor != self.color):
+                move = self.logic.findBestMove(self.board)
+                move.log()
+                self.board.processMove(move)
                 #if(self.opponentTurnMade()):
                 #    pass
             self.chessGraphics.render(self.board)

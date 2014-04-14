@@ -31,7 +31,6 @@ class ChessBoard:
     def __init__(self, *args):
         self.overlayOn = False
         self.overlayPiece = None
-        self.possibleMovementPositionsCache = {}
         self.pieces = []
         if len(args) == 0:
             self.reset()
@@ -305,7 +304,6 @@ class ChessBoard:
             else:
                 self.fullMoves += 1
                 self.activeColor = COLOR.WHITE
-            self.possibleMovementPositionsCache.clear()
         else:
             print("Tried to play illigal move:", move.notation())
 
@@ -381,8 +379,6 @@ class ChessBoard:
     def possibleMovementPositionsOf(self, piece):
         if(piece is None):return None
         assert(piece in self.pieces)
-#        if(self.possibleMovementPositionsCache.get(piece) is not None):
-#            return self.possibleMovementPositionsCache.get(piece)
         retVal = []
         movementPositions = []
         attackPositions = []
@@ -433,7 +429,6 @@ class ChessBoard:
             if(canPlace):
                 finalMovementPositions.append(movement)
         retVal = attackPositions + finalMovementPositions
-#        self.possibleMovementPositionsCache[piece] = retVal
         return retVal
 
     def isPositionSafe(self, pos, safeColor):
