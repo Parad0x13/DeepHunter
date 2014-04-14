@@ -3,14 +3,17 @@ from __future__ import print_function
 from ChessBoard import *
 from ChessSimulatorStream import *
 from ChessGraphicsManager import *
+from ChessLogic import *
 
 class ChessSimulatorManager:
 
     def __init__(self):
         self.board = ChessBoard()
+        self.logic = ChessLogic()
         self.whiteSimulatorStream = None
         self.blackSimulatorStream = None
         self.chessGraphics = ChessGraphicsManager()
+        self.currentColor = COLOR.WHITE
         print("SimulatorManager loaded, no simulator streams locked")
 
     def tick(self):
@@ -25,7 +28,20 @@ class ChessSimulatorManager:
                     self.toggleClickedPos(event.pos)
                 else:
                     pass
+
+            if(self.currentColor == self.color):
+                move = self.logic.findBestMove(self)
+                move.log()
+                self.board.processMove(move)
+            elif(self.currentColor != self.color):
+                pass
+                #if(self.opponentTurnMade()):
+                #    pass
             self.chessGraphics.render(self.board)
+
+    def startGame(self, color):
+        self.color = color
+        self.run()
 
     def toggleClickedPos(self, pos):
         position = ChessPosition(int(pos[0]/40), 7-int(pos[1]/40))

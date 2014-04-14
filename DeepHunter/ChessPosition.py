@@ -1,9 +1,7 @@
 from __future__ import print_function
 import copy
 
-
-class POSITION_METADATA:MOVEMENT, ATTACK, NOTHING = range(3)
-FileNames = "abcdefgh"
+from globals import *
 
 
 class ChessPosition:

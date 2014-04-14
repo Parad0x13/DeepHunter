@@ -15,10 +15,7 @@ Long Algebraic Notation will take on the form
 from __future__ import print_function
 
 from ChessBoard import *
-
-
-class TYPE:P, N, B, R, Q, K = range(6)
-class CASTLETYPE:K, Q = range(2)
+from globals import *
 
 
 class ChessMove:
