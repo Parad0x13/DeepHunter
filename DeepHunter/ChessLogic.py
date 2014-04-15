@@ -24,3 +24,10 @@ class ChessLogic:
             if(toPosition != None):
                 break
         return ChessMove(fromPosition, toPosition, board)
+
+    def minimax(self, board, depth):
+        if(depth == 0 or board.is_checkmate() or position.is_stalemate()):
+            pass
+
+    def evaluate_board(self, board):
+        return 0

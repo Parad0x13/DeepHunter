@@ -9,7 +9,6 @@ class ChessSimulatorManager:
 
     def __init__(self):
         self.board = ChessBoard()
-        self.board.activeColor = COLOR.WHITE;
         self.logic = ChessLogic()
         self.whiteSimulatorStream = None
         self.blackSimulatorStream = None
@@ -32,14 +31,22 @@ class ChessSimulatorManager:
             if(self.board.activeColor == self.color):
                 move = self.logic.findBestMove(self.board)
                 move.log()
-                self.board.processMove(move)
+                print("Processing Move:", move.notation())
+                self.board = self.board.doMove(move, False)
             elif(self.board.activeColor != self.color):
                 move = self.logic.findBestMove(self.board)
                 move.log()
-                self.board.processMove(move)
+                print("Processing Move:", move.notation())
+                self.board = self.board.doMove(move, False)
                 #if(self.opponentTurnMade()):
                 #    pass
             self.chessGraphics.render(self.board)
+            if(self.board.is_checkmate()):
+                self.board.render()
+                print("begin copy test")
+                self.board.copyTest(1000)
+                print("end copy test")
+                return False
 
     def startGame(self, color):
         self.color = color

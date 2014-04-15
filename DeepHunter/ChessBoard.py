@@ -1,5 +1,6 @@
 from __future__ import print_function
 import re
+import copy
 
 from ChessPiece import *
 from ChessMove import *
@@ -29,6 +30,7 @@ from ChessMove import *
 class ChessBoard:
 
     def __init__(self, *args):
+        self.activeColor = COLOR.WHITE;
         self.overlayOn = False
         self.overlayPiece = None
         self.pieces = []
@@ -36,6 +38,11 @@ class ChessBoard:
             self.reset()
         elif len(args) == 1:
             self.mimicFEN(args[0])
+
+    def copyTest(self, max):
+        for x in range(0, max):
+            test = copy.deepcopy(self)
+            self = test
 
     def reset(self):
         self.mimicFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
@@ -92,17 +99,16 @@ class ChessBoard:
         self.turnOffOverlay()
         self.pieces = []
 
-    # This may need work done later
-    def getWinner(self):
-        whiteAlive = False
-        blackAlive = False
-        for piece in self.pieces:
-            if(piece.type == TYPE.K):
-                if(piece.color == COLOR.WHITE):whiteAlive = True
-                if(piece.color == COLOR.BLACK):blackAlive = True
-        if(not whiteAlive):return COLOR.BLACK
-        if(not blackAlive):return COLOR.WHITE
-        return None
+    def is_checkmate(self):
+        king = self.getKing(self.activeColor)
+        if(not self.isPositionSafe(king.pos, king.color)):
+            # Need to check if available moves are left
+            return True
+        else:
+            return False
+
+    def is_stalemate(self):
+        pass
 
     def getKing(self, color):
         for piece in self.pieces:
@@ -257,19 +263,16 @@ class ChessBoard:
                 return True
         return False
 
-    def processMove(self, move):
-        print("Processing Move:", move.notation())
-        self.doMove(move, False)
-
     def forceMove(self, move):
-        self.doMove(move, True)
+        self = self.doMove(move, True)
 
     def doMove(self, move, shouldForce):
-        if(shouldForce or self.isAValidMove(move)):
-            piece = self.pieceAt(move.fromPosition)
+        retVal = copy.deepcopy(self)
+        if(shouldForce or retVal.isAValidMove(move)):
+            piece = retVal.pieceAt(move.fromPosition)
             if(move.isCaptureMove):
-                toCapture = self.pieceAt(move.toPosition)
-                self.pieces.remove(toCapture)
+                toCapture = retVal.pieceAt(move.toPosition)
+                retVal.pieces.remove(toCapture)
             if(move.isPromoteMove):
                 piece.type = move.promoteType
             if(move.castleType == CASTLETYPE.K):
@@ -278,14 +281,14 @@ class ChessBoard:
                 pass
 
             if(move.type == TYPE.K):
-                king = self.pieceAt(move.fromPosition)
+                king = retVal.pieceAt(move.fromPosition)
                 if(king is not None):
                     king.canCastleKingside = False
                     king.canCastleQueenside = False
 
             if(move.type == TYPE.R):
-                rook = self.pieceAt(move.fromPosition)
-                king = self.getKing(rook.color)
+                rook = retVal.pieceAt(move.fromPosition)
+                king = retVal.getKing(rook.color)
                 if(rook is not None and king is not None):
                     # Who cares if the rook has moved already, we only care about the first move
                     if(rook.pos.file == 0):
@@ -296,18 +299,20 @@ class ChessBoard:
             piece.pos = move.toPosition
 
             if(move.isPawnMove or move.isCaptureMove):
-                self.halfMoves = 0
+                retVal.halfMoves = 0
             else:
-                self.halfMoves += 1
-            if(self.activeColor == COLOR.WHITE):
-                self.activeColor = COLOR.BLACK
+                retVal.halfMoves += 1
+            if(retVal.activeColor == COLOR.WHITE):
+                retVal.activeColor = COLOR.BLACK
             else:
-                self.fullMoves += 1
-                self.activeColor = COLOR.WHITE
+                retVal.fullMoves += 1
+                retVal.activeColor = COLOR.WHITE
+            return retVal
         else:
             print("Tried to play illigal move:", move.notation())
+            return self
 
-    def potentialMovementPositionsOf(self, piece):
+    def potentialMovementPositionsOf(board, piece):
         retVal = []
         if(piece.type == TYPE.P):
             if(piece.isWhite):direction = 1
@@ -341,7 +346,7 @@ class ChessBoard:
         retVal = [x for x in retVal if x is not None and x.isOnBoard()]
         return retVal
 
-    def potentialAttackPositionsOf(self, piece):
+    def potentialAttackPositionsOf(board, piece):
         retVal = []
         if(piece.type == TYPE.P):
             if(piece.isWhite):direction = 1
@@ -349,24 +354,24 @@ class ChessBoard:
             retVal.append(ChessPosition(piece.pos.file - 1, piece.pos.rank + direction))
             retVal.append(ChessPosition(piece.pos.file + 1, piece.pos.rank + direction))
         if(piece.type == TYPE.N):
-            retVal += self.potentialMovementPositionsOf(piece)
+            retVal += board.potentialMovementPositionsOf(piece)
         attackRange = 8
         if(piece.type == TYPE.K):
             attackRange = 1
         if(piece.type == TYPE.B or piece.type == TYPE.Q or piece.type == TYPE.K):
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1,  1))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1,  1))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1, -1))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1, -1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1,  1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1,  1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1, -1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1, -1))
         if(piece.type == TYPE.R or piece.type == TYPE.Q or piece.type == TYPE.K):
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1,  0))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1,  0))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange,  0,  1))
-            retVal.append(self.firstOccupiedPositionWithinRange(piece.pos, attackRange,  0, -1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange, -1,  0))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange,  1,  0))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange,  0,  1))
+            retVal.append(board.firstOccupiedPositionWithinRange(piece.pos, attackRange,  0, -1))
 #        moveToAttacks = []
         retVal = [x for x in retVal if x is not None and x.isOnBoard()]
 #        if(piece.type != TYPE.P):
-#            moveToAttacks += self.potentialMovementPositionsOf(piece)
+#            moveToAttacks += board.potentialMovementPositionsOf(piece)
 #        for attack in moveToAttacks:
 #            canAdd = True
 #            for position in retVal:
@@ -376,49 +381,49 @@ class ChessBoard:
 #                retVal.append(attack)
         return retVal
 
-    def possibleMovementPositionsOf(self, piece):
+    def possibleMovementPositionsOf(board, piece):
         if(piece is None):return None
-        assert(piece in self.pieces)
+        assert(piece in board.pieces)
         retVal = []
         movementPositions = []
         attackPositions = []
         if(piece.type == TYPE.P or piece.type == TYPE.B or piece.type == TYPE.R or piece.type == TYPE.Q):
-            potentialMovements = self.potentialMovementPositionsOf(piece)
+            potentialMovements = board.potentialMovementPositionsOf(piece)
             for movement in potentialMovements:
-                if(self.emptyPathTo(piece.pos, movement)):
+                if(board.emptyPathTo(piece.pos, movement)):
                     movement.metaData = POSITION_METADATA.MOVEMENT
                     movementPositions.append(movement)
-            potentialAttacks = self.potentialAttackPositionsOf(piece)
+            potentialAttacks = board.potentialAttackPositionsOf(piece)
             for attack in potentialAttacks:
-                occupant = self.pieceAt(attack)
+                occupant = board.pieceAt(attack)
                 if(occupant and occupant.isOpponent(piece)):
                     attack.metaData = POSITION_METADATA.ATTACK
                     attackPositions.append(attack)
         if(piece.type == TYPE.N):
-            potentialMovements = self.potentialMovementPositionsOf(piece)
+            potentialMovements = board.potentialMovementPositionsOf(piece)
             for movement in potentialMovements:
-                occupant = self.pieceAt(movement)
+                occupant = board.pieceAt(movement)
                 if(occupant == None):
                     movement.metaData = POSITION_METADATA.MOVEMENT
                     movementPositions.append(movement)
-            potentialAttacks = self.potentialAttackPositionsOf(piece)
+            potentialAttacks = board.potentialAttackPositionsOf(piece)
             for attack in potentialAttacks:
-                occupant = self.pieceAt(attack)
+                occupant = board.pieceAt(attack)
                 if(occupant and occupant.isOpponent(piece)):
                     attack.metaData = POSITION_METADATA.ATTACK
                     attackPositions.append(attack)
         if(piece.type == TYPE.K):
-            potentialMovements = self.potentialMovementPositionsOf(piece)
+            potentialMovements = board.potentialMovementPositionsOf(piece)
             for movement in potentialMovements:
-                if(self.emptyPathTo(piece.pos, movement)):
-                    if(self.isPositionSafe(movement, piece.color)):
+                if(board.emptyPathTo(piece.pos, movement)):
+                    if(board.isPositionSafe(movement, piece.color)):
                         movement.metaData = POSITION_METADATA.MOVEMENT
                         movementPositions.append(movement)
-            potentialAttacks = self.potentialAttackPositionsOf(piece)
+            potentialAttacks = board.potentialAttackPositionsOf(piece)
             for attack in potentialAttacks:
-                occupant = self.pieceAt(attack)
+                occupant = board.pieceAt(attack)
                 if(occupant and occupant.isOpponent(piece)):
-                    if(self.isPositionSafe(attack, piece.color)):
+                    if(board.isPositionSafe(attack, piece.color)):
                         attack.metaData = POSITION_METADATA.ATTACK
                         attackPositions.append(attack)
         finalMovementPositions = []
@@ -431,14 +436,14 @@ class ChessBoard:
         retVal = attackPositions + finalMovementPositions
         return retVal
 
-    def isPositionSafe(self, pos, safeColor):
+    def isPositionSafe(board, pos, safeColor):
         opponents = []
         if(safeColor == COLOR.WHITE):
-            opponents = self.piecesOfColor(COLOR.BLACK)
+            opponents = board.piecesOfColor(COLOR.BLACK)
         elif(safeColor == COLOR.BLACK):
-            opponents = self.piecesOfColor(COLOR.WHITE)
+            opponents = board.piecesOfColor(COLOR.WHITE)
         for opponent in opponents:
-            opponentPositions = self.potentialAttackPositionsOf(opponent)
+            opponentPositions = board.potentialAttackPositionsOf(opponent)
             for position in opponentPositions:
                 if(position.isEqualTo(pos)):
                     print("Attacking:", opponent.pos.file, opponent.pos.rank)
