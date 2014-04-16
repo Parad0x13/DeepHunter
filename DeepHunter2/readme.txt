@@ -1,0 +1,1 @@
+This was my try at turning DeepHunter into a chess engine that read mostly off FEN notation and with little internal structure... it failed and confused me horribly
